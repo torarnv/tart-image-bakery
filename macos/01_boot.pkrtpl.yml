@@ -1,0 +1,45 @@
+setup_macos:
+  # Skip over "Macintosh" and select "Options" to boot into macOS Recovery
+  - <wait 'Macintosh'>
+  - <wait 'Options'>
+  - <right><right>
+  - <wait 'Continue'>
+  - <enter>
+
+  # The initially selected language at the top of the list depends on the locale/region
+  # settings of the host the virtual machine was created in. If we're in a region where
+  # English is the already selected entry, we can't type "English" to move to it, as that
+  # will move us to the next entry in the list, ie. "English (UK)". To account for this
+  # we first move to the bottom, before moving (back) to "English".
+  - <wait 'English'>
+  - <leftOptionOn><down><leftOptionOff>
+  - english
+  - <enter>
+
+  # Open Terminal
+  - <wait 'Disk Utility'>
+  - <leftCommandOn>T<leftCommandOff>
+  - <wait 'bash|zsh'>
+
+  # Zoom window and increase font size, to increase the
+  # Vision.framework text detection consistency.
+  - <leftCtrlOn><f2><leftCtrlOff>
+  - window<down>zooom<enter>
+  - <leftCommandOn>
+%{ for i in range(12) ~}
+  - +
+%{ endfor ~}
+  - <leftCommandOff>
+
+  # Set up macOS
+  - "curl -s http://{{ .HTTPIP }}:{{ .HTTPPort }}/setup.sh | bash"
+  - <enter>
+%{if disable_sip}
+  - <wait 'password for user'>
+  - ${password}<enter>
+%{endif}
+  - <wait 'setup completed'>
+
+%{if !pause_after_setup && !skip_provisioning}
+  - reboot<enter>
+%{endif}
