@@ -7,7 +7,7 @@ with provisioning via shell script or Ansible.
 
 > [!IMPORTANT]
 > This project bypasses Setup Assistant for unattended installation, which may have unexpected
-> side effects. For development and testing only ⚠️
+> side effects. Not indended for production use ⚠️
 >
 > Please make sure you read and accept the [license agreement](https://www.apple.com/legal/sla/)
 > of the macOS version you're installing.
