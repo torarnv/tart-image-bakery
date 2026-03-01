@@ -6,10 +6,10 @@ with provisioning via shell script or Ansible.
 ![image-bakery](https://github.com/user-attachments/assets/2d1a941f-bc59-40ec-9f25-c2297581c88f)
 
 > [!IMPORTANT]
-> This project bypasses Setup Assistant for unattended installation, which probably has unintended
-> consequences. Not intended for production use ⚠️
+> This project bypasses Setup Assistant for unattended installation, which may have unexpected
+> side effects. For development and testing only ⚠️
 >
-> Make sure to read and comply with the [license agreement](https://www.apple.com/legal/sla/)
+> Please make sure you read and accept the [license agreement](https://www.apple.com/legal/sla/)
 > of the macOS version you're installing.
 
 ## Features

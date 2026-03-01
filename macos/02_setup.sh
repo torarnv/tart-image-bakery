@@ -100,7 +100,6 @@ login_window_plist="/Volumes/Data/Library/Preferences/com.apple.loginwindow.plis
 plutil -create binary1 $login_window_plist
 plutil -insert autoLoginUser -string admin $login_window_plist
 
-
 # Skip Setup Assistant
 log "[*] Skipping Setup Assistant"
 setup_assistant_plist="/Volumes/Data/Users/$username/Library/Preferences/com.apple.SetupAssistant.plist"
