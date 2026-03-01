@@ -105,11 +105,6 @@ variable "ansible_extra_arguments" {
   description = "Additional arguments to pass to Ansible"
 }
 
-variable "ansible_roles_path" {
-  default = env("ANSIBLE_ROLES_PATH")
-  description = "Custom Ansible roles path"
-}
-
 # Debugging
 
 variable "from_image" {
