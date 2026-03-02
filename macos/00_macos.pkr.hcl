@@ -240,6 +240,7 @@ build {
       user = var.username
       host_alias = local.vm_name
       ansible_env_vars = [
+        "ANSIBLE_CONFIG=${dirname(abspath(var.ansible_playbook))}/ansible.cfg",
         "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3",
         "ANSIBLE_SSH_TRANSFER_METHOD=piped"
       ]
