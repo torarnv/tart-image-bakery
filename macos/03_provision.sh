@@ -29,14 +29,25 @@ sudo scutil --set ComputerName "macOS $(sw_vers --productVersion) VM"
 
 # Prepare for Ansible provisioning
 if [ -n "$PKR_VAR_ansible_playbook" ]; then
-    # Ansible requires Python, so let's install the latest available version now
-    LATEST=$(curl -s "https://www.python.org/api/v2/downloads/release/?version=3" | \
-      perl -0 -MJSON::PP -e '
-        my $data = JSON::PP->new->decode(do { local $/; <STDIN> });
-        my ($r) = grep { $_->{is_latest} } @$data;
-        print $r->{name} =~ s/Python //r;
-      ')
-    echo "Installing latest official Python version $LATEST..."
-    curl -O "https://www.python.org/ftp/python/${LATEST}/python-${LATEST}-macos11.pkg" 2>&1
-    sudo installer -verbose -pkg "python-${LATEST}-macos11.pkg" -target /
+    # Ansible requires Python, so let's install Command Line Tools up front
+    clt_placeholder="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
+    sudo touch "${clt_placeholder}"
+
+    echo "🔎 Finding latest Command Line Tools..."
+    clt_label=""
+    while [ -z "$clt_label" ]; do
+        clt_label=$(softwareupdate --list 2>/dev/null |
+                grep -A1 '\* Label: Command Line Tools' |
+                paste - - |
+                sed 's/.*\* Label: //; s/\tTitle:.*Version: /\t/' |
+                sort -t$'\t' -k2 -V |
+                tail -n1 |
+                cut -f1)
+    done
+
+    echo "📦 Installing ${clt_label}..."
+    sudo softwareupdate --install --no-scan --verbose "${clt_label}"
+    sudo xcode-select --switch "/Library/Developer/CommandLineTools"
+
+    sudo rm -f "${clt_placeholder}"
 fi
