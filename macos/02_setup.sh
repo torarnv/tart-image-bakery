@@ -98,7 +98,7 @@ kcpassword_file="/Volumes/Data/private/etc/kcpassword"
 chmod 600 "$kcpassword_file"
 login_window_plist="/Volumes/Data/Library/Preferences/com.apple.loginwindow.plist"
 plutil -create binary1 $login_window_plist
-plutil -insert autoLoginUser -string admin $login_window_plist
+plutil -insert autoLoginUser -string "$username" $login_window_plist
 
 # Skip Setup Assistant
 log "[*] Skipping Setup Assistant"
