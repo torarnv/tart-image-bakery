@@ -93,12 +93,6 @@ variable "ansible_playbook" {
   description = "Path to Ansible playbook"
 }
 
-variable "ansible_requirements" {
-  type = string
-  default = null
-  description = "Path to requirements.yml for Ansible Galaxy"
-}
-
 variable "ansible_extra_arguments" {
   type = list(string)
   default = []
@@ -160,6 +154,11 @@ locals {
   )
 
   skip_provisioning = var.skip_provisioning || (var.from_image == null && var.skip_setup)
+
+  ansible_requirements = var.ansible_playbook != null ? format("%s/requirements%s",
+    dirname(abspath(var.ansible_playbook)),
+    regex("\\.[^.]+$", basename(var.ansible_playbook))
+  ) : null
 
   # Workaround for https://github.com/hashicorp/packer/issues/13299
   template_vars = {
@@ -237,7 +236,7 @@ build {
     for_each = var.ansible_playbook != null && !local.skip_provisioning ? [1] : []
     content {
       playbook_file = var.ansible_playbook
-      galaxy_file = var.ansible_requirements
+      galaxy_file = fileexists(local.ansible_requirements) ? local.ansible_requirements : null
       user = var.username
       host_alias = local.vm_name
       ansible_env_vars = [
