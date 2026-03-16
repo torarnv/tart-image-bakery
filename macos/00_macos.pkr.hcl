@@ -101,6 +101,12 @@ variable "ansible_extra_arguments" {
 
 # Debugging
 
+variable "from_ipsw" {
+  type = string
+  default = null
+  description = "Install from IPSW"
+}
+
 variable "from_image" {
   type = string
   default = null
@@ -134,7 +140,7 @@ variable "headless" {
 # -------------- Build --------------
 
 data "ipsw" "macos" {
-  skip = var.from_image != null
+  skip = var.from_image != null || var.from_ipsw != null
   os = "macOS"
   version = var.version
   device = "VirtualMac2,1"
@@ -143,13 +149,15 @@ data "ipsw" "macos" {
 locals {
   ipsw = data.ipsw.macos
   ipsw_valid = length(local.ipsw) > 0
-  ipsw_url = local.ipsw_valid ? local.ipsw.url : null
+  ipsw_url = var.from_ipsw != null ? var.from_ipsw : (local.ipsw_valid ? local.ipsw.url : null)
+
+  version = local.ipsw_valid ? local.ipsw.version : var.version
   version_number = (local.ipsw_valid ? (local.ipsw.version_components.minor < 10 ?
       (local.ipsw.version_components.major + (local.ipsw.version_components.minor / 10)) : null)
       : convert(var.version, number))
 
-  vm_name = (local.ipsw_valid ?
-    "macos:${local.ipsw.version}${var.skip_setup ? "+created" : ""}" :
+  vm_name = (local.ipsw_url != null ?
+    "macos:${local.version}${var.skip_setup ? "+created" : ""}" :
     "${var.from_image}+${var.skip_setup ? "provisioned" : "installed"}"
   )
 
