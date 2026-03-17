@@ -113,6 +113,12 @@ variable "from_image" {
   description = "Continue from existing image"
 }
 
+variable "vm_name" {
+  type = string
+  default = null
+  description = "VM name. If not set, the name is derived automatically."
+}
+
 variable "skip_setup" {
   type = bool
   default = false
@@ -156,7 +162,7 @@ locals {
       (local.ipsw.version_components.major + (local.ipsw.version_components.minor / 10)) : null)
       : convert(var.version, number))
 
-  vm_name = (local.ipsw_url != null ?
+  vm_name = var.vm_name != null ? var.vm_name : (local.ipsw_url != null ?
     "macos:${local.version}${var.skip_setup ? "+created" : ""}" :
     "${var.from_image}+${var.skip_setup ? "provisioned" : "installed"}"
   )
