@@ -24,7 +24,7 @@ until sysadminctl -screenLock status 2>&1 | grep -q "is off"; do
 done
 
 # Set host name based on VM name, and pretty computer name
-sudo scutil --set LocalHostName $(echo ${PKR_VAR_vm_name} | sed 's/[^A-Za-z0-9-]/-/g')
+sudo scutil --set LocalHostName "$(echo ${PKR_VAR_vm_name} | sed 's/[^A-Za-z0-9]//g')"
 sudo scutil --set ComputerName "macOS $(sw_vers --productVersion) VM"
 
 # Prepare for Ansible provisioning
