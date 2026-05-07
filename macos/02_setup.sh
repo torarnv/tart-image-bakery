@@ -14,6 +14,8 @@ EOF
 echo -n " macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
 echo -n " | $(sysctl -n machdep.cpu.brand_string)"; echo; echo
 
+export PATH="/Volumes/Macintosh HD/usr/bin:/Volumes/Macintosh HD/usr/sbin:$PATH"
+
 # Logging
 exec 3>&1
 logfile=$(mktemp)
@@ -94,7 +96,7 @@ kcpassword() {
     done
 }
 kcpassword_file="/Volumes/Data/private/etc/kcpassword"
-(set +x; kcpassword "$password") | "/Volumes/Macintosh HD/usr/bin/xxd" -r -p > "$kcpassword_file"
+(set +x; kcpassword "$password") | xxd -r -p > "$kcpassword_file"
 chmod 600 "$kcpassword_file"
 login_window_plist="/Volumes/Data/Library/Preferences/com.apple.loginwindow.plist"
 plutil -create binary1 $login_window_plist
@@ -109,15 +111,40 @@ sw_build_version=$(sw_vers -buildVersion)
 plutil -insert LastSeenBuddyBuildVersion -string "$sw_build_version" "$setup_assistant_plist"
 touch "/Volumes/Data/private/var/db/.AppleSetupDone"
 
+# Set up TCC database
+log "[*] Setting up TCC database"
+tcc_db="/Volumes/Data/Library/Application Support/com.apple.TCC/TCC.db"
+cp "/Library/Application Support/com.apple.TCC/TCC.db" "$tcc_db"
+
+tcc_grant() {
+    local service="$1" client="$2" client_type="$3" binary="$4"
+    local req_str req_hex
+    req_str=$(codesign -d -r- "$binary" 2>&1 | awk -F ' => ' '/designated/{print $2}')
+    req_hex=$(echo "$req_str" | csreq -r- -b >(xxd -p | tr -d '\n'))
+    sqlite3 "$tcc_db" << SQL
+INSERT OR REPLACE INTO access
+    (service, client, client_type, auth_value, auth_reason, auth_version, csreq, flags)
+    VALUES ('$service', '$client', $client_type, 2, 4, 1, X'$req_hex', 0);
+SQL
+}
+
 # Enable SSH
 log "[*] Enabling SSH service"
 launchd_disabled_plist="/Volumes/Data/private/var/db/com.apple.xpc.launchd/disabled.plist"
 plutil -create binary1 $launchd_disabled_plist
 plutil -insert "com\.openssh\.sshd" -bool false $launchd_disabled_plist
+# With full disk access
+tcc_grant 'kTCCServiceSystemPolicyAllFiles' '/usr/libexec/sshd-keygen-wrapper' 1 \
+    "/Volumes/Macintosh HD/usr/libexec/sshd-keygen-wrapper"
 
-# Enable VNC
+# Enable Screen Sharing (VNC)
 log "[*] Enabling VNC service"
+# Requires permissions to capture screen and synthesize events
 plutil -insert "com\.apple\.screensharing" -bool false $launchd_disabled_plist
+remote_management="/Volumes/Macintosh HD/System/Library/CoreServices/RemoteManagement"
+agent_binary="$remote_management/ScreensharingAgent.bundle/Contents/MacOS/ScreensharingAgent"
+tcc_grant 'kTCCServicePostEvent' 'com.apple.screensharing.agent' 0 "$agent_binary"
+tcc_grant 'kTCCServiceScreenCapture' 'com.apple.screensharing.agent' 0 "$agent_binary"
 
 # Disable SIP if requested
 if [[ "$DISABLE_SIP" = "true" ]]; then
