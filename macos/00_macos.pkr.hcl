@@ -51,6 +51,23 @@ variable "disk_size" {
   description = "Disk size in GB"
 }
 
+variable "recovery_partition" {
+  type = string
+  default = null
+  description = <<-EOF
+  Behavior with respect to the macOS recovery partition:
+    - "delete": allows disk resize, decreases image size, prevents softwareupdate
+    - "keep": prevents disk resize, increases image size, allows softwareupdate
+    - "relocate": allows disk resize, increases image size, allows softwareupdate
+  Defaults to the plugin default if not specified.
+  EOF
+
+  validation {
+    condition = var.recovery_partition == null || contains(["delete", "keep", "relocate"], var.recovery_partition)
+    error_message = "Value of recovery_partition must be one of: delete, keep, or relocate."
+  }
+}
+
 variable "no_audio" {
   type = bool
   default = true
@@ -200,6 +217,7 @@ source "tart-cli" "unattended-setup" {
   cpu_count = var.cpu_count
   memory_gb = var.memory_size
   disk_size_gb = var.disk_size
+  recovery_partition = var.recovery_partition
 
   run_extra_args = var.no_audio ? [ "--no-audio" ] : []
 
