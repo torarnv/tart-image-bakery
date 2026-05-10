@@ -50,6 +50,7 @@ packer build \
   -var cpu_count=8 \
   -var memory_size=16 \
   -var disk_size=100 \
+  -var recovery_partition=relocate \
   -var username=developer \
   -var password=hunter2 \
   macos
