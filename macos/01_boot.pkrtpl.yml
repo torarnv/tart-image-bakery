@@ -1,10 +1,6 @@
 setup_macos:
-  # Skip over "Macintosh" and select "Options" to boot into macOS Recovery
-  - <wait 'Macintosh'>
-  - <wait 'Options'>
-  - <right><right>
-  - <wait 'Continue'>
-  - <enter>
+  - <click 'Options'>
+  - <click 'Continue'>
 
   # The initially selected language at the top of the list depends on the locale/region
   # settings of the host the virtual machine was created in. If we're in a region where
