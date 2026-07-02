@@ -6,6 +6,7 @@ setup_macos:
   - <right><right><right>
   - <enter>
 
+%{if version_number < 27 }
   # The initially selected language at the top of the list depends on the locale/region
   # settings of the host the virtual machine was created in. If we're in a region where
   # English is the already selected entry, we can't type "English" to move to it, as that
@@ -15,6 +16,7 @@ setup_macos:
   - <leftOptionOn><down><leftOptionOff>
   - english
   - <enter>
+%{endif}
 
   # Open Terminal
   - <wait 'Disk Utility'>

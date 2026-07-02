@@ -6,8 +6,9 @@ with provisioning via shell script or Ansible.
 ![image-bakery](https://github.com/user-attachments/assets/2d1a941f-bc59-40ec-9f25-c2297581c88f)
 
 > [!IMPORTANT]
-> This project [bypasses](https://github.com/torarnv/tart-image-bakery/blob/main/macos/02_setup.sh) Setup Assistant for unattended installation, which may have unexpected
-> side effects. Not indended for production use ⚠️
+> This project [bypasses](https://github.com/torarnv/tart-image-bakery/blob/main/macos/02_setup.sh)
+> Setup Assistant on macOS 26 and below, which may have unexpected side effects. Not indended for
+> production use ⚠️ On macOS 27 it uses the official [`VZMacGuestProvisioningOptions`](https://developer.apple.com/documentation/virtualization/vzmacguestprovisioningoptions) mechanism.
 >
 > Please make sure to read and accept the [license agreement](https://www.apple.com/legal/sla/)
 > of the macOS version you're installing.
@@ -39,13 +40,13 @@ packer init macos
 ### Basic VM creation
 
 ```bash
-packer build -var version=26 macos
+packer build -parallel-builds=1 -var version=26 macos
 ```
 
 ### Custom VM configuration
 
 ```bash
-packer build \
+packer build -parallel-builds=1 \
   -var version=26 \
   -var cpu_count=8 \
   -var memory_size=16 \
@@ -59,7 +60,7 @@ packer build \
 ### Disable SIP
 
 ```bash
-packer build \
+packer build -parallel-builds=1 \
   -var version=26 \
   -var disable_sip=true \
   macos
@@ -68,13 +69,13 @@ packer build \
 ### Pre-release VM creation
 
 ```bash
-packer build -var version=26-0 macos
+packer build -var -parallel-builds=1 version=27-0 macos
 ```
 
 ### With Ansible provisioning
 
 ```bash
-packer build \
+packer build -parallel-builds=1 \
   -var version=26 \
   -var ansible_playbook=playbook.yml \
   macos
@@ -83,7 +84,7 @@ packer build \
 ### Override provisioning script
 
 ```bash
-packer build \
+packer build -parallel-builds=1 \
   -var version=26 \
   -var provisioning_script=/path/to/custom-setup.sh \
   macos

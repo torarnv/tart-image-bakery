@@ -184,6 +184,9 @@ locals {
     "${var.from_image}+${var.skip_setup ? "provisioned" : "installed"}"
   )
 
+  use_builtin_guest_provisioning = local.version_number >= 27
+  audio_args = var.no_audio ? ["--no-audio"] : []
+
   skip_provisioning = var.skip_provisioning || (var.from_image == null && var.skip_setup)
 
   ansible_requirements = var.ansible_playbook != null ? format("%s/requirements%s",
@@ -200,6 +203,7 @@ locals {
     pause_after_setup = var.pause_after_setup
     skip_provisioning = var.skip_provisioning
     ansible_playbook = var.ansible_playbook
+    version_number = local.version_number
   }
 
   boot_commands = yamldecode(
@@ -207,19 +211,13 @@ locals {
   )
 }
 
-source "tart-cli" "unattended-setup" {
+source "tart-cli" "defaults" {
   vm_name = local.vm_name
-
-  # Either from IPSW or existing base image
-  from_ipsw = local.ipsw_url
-  vm_base_name = var.from_image
 
   cpu_count = var.cpu_count
   memory_gb = var.memory_size
   disk_size_gb = var.disk_size
   recovery_partition = var.recovery_partition
-
-  run_extra_args = var.no_audio ? [ "--no-audio" ] : []
 
   # Ventura and below default to non-HighDPI resolution,
   # so give it less pixels to improve boot command OCR.
@@ -230,19 +228,7 @@ source "tart-cli" "unattended-setup" {
   # where a VM is not usable (for OS installation) immediately after creation.
   create_grace_time = "30s"
 
-  # Initial setup
-  recovery = !var.skip_setup
-  boot_command = var.skip_setup ? null : local.boot_commands.setup_macos
-  boot_key_interval = "10ms"
-  http_content = {
-    "/setup.sh" = "${join("\n",
-      [for k, v in local.template_vars : format("%s=%s ",
-        upper(k), v != null ? try(convert(v, string), "") : "")]
-    )}\n\n${file("02_setup.sh")}"
-  }
-
   # Provisioning
-  communicator = local.skip_provisioning ? "none" : "ssh"
   ssh_username = var.username
   ssh_password = var.password
   ssh_timeout  = "10m"
@@ -251,10 +237,66 @@ source "tart-cli" "unattended-setup" {
 build {
   name = local.vm_name
 
-  source "source.tart-cli.unattended-setup" {}
+  # Use VZMacGuestProvisioningOptions on macOS 27+
+  dynamic "source" {
+    for_each = (
+      local.use_builtin_guest_provisioning && !var.skip_setup
+        ? ["guest-provisioning"] : []
+    )
+    labels = ["tart-cli.defaults"]
+
+    content {
+      name = source.value
+
+      from_ipsw = local.ipsw_url
+      vm_base_name = var.from_image
+
+      run_extra_args = concat(
+        local.audio_args,
+        ["--provisioning-opts=${join(",", [
+          "fullName=${var.username}",
+          "username=${var.username}",
+          "password=${var.password}",
+          "logsInAutomatically=true",
+          "enablesRemoteLogin=true",
+        ])}"]
+      )
+
+      communicator = "ssh"
+    }
+  }
+
+  provisioner "shell" {
+    only = [ "tart-cli.guest-provisioning" ]
+    # Make sure Setup Assistant has fully completed
+    inline = [ "until pgrep -x Dock >/dev/null; do sleep 1; done" ]
+  }
+
+  # Full setup on macOS < 27, or VNC and SIP on macOS 27
+  source "source.tart-cli.defaults" {
+    name = "unattended-setup"
+
+    from_ipsw = !local.use_builtin_guest_provisioning ? local.ipsw_url : null
+    vm_base_name = !local.use_builtin_guest_provisioning ? var.from_image : null
+
+    recovery = !var.skip_setup
+    run_extra_args = local.audio_args
+
+    boot_command = var.skip_setup ? null : local.boot_commands.setup_macos
+    boot_key_interval = "10ms"
+    http_content = {
+      "/setup.sh" = "${join("\n",
+        [for k, v in local.template_vars : format("%s=%s ",
+          upper(k), v != null ? try(convert(v, string), "") : "")]
+      )}\n\n${file("02_setup.sh")}"
+    }
+
+    communicator = local.skip_provisioning ? "none" : "ssh"
+  }
 
   # Basic provisioning via shell script
   provisioner "shell" {
+    only = [ "tart-cli.unattended-setup" ]
     script = var.provisioning_script != null ? var.provisioning_script : "${path.root}/03_provision.sh"
     environment_vars = [
       for k, v in local.template_vars : format("PKR_VAR_%s=%s",
@@ -267,6 +309,7 @@ build {
     labels = ["ansible"]
     for_each = var.ansible_playbook != null && !local.skip_provisioning ? [1] : []
     content {
+      only = [ "tart-cli.unattended-setup" ]
       playbook_file = var.ansible_playbook
       galaxy_file = fileexists(local.ansible_requirements) ? local.ansible_requirements : null
       user = var.username
