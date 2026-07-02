@@ -1,6 +1,10 @@
 setup_macos:
-  - <click 'Options'>
-  - <click 'Continue'>
+  - <wait 'Macintosh'>
+  - <wait 'Options'>
+  - <click 'Macintosh'>
+  - <wait 'Continue'>
+  - <right><right><right>
+  - <enter>
 
   # The initially selected language at the top of the list depends on the locale/region
   # settings of the host the virtual machine was created in. If we're in a region where
