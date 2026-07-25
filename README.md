@@ -30,7 +30,7 @@ with provisioning via shell script or Ansible.
 
 ```bash
 brew install hashicorp/tap/packer
-brew install cirruslabs/cli/tart
+brew install openai/tools/tart
 brew install ansible # Optional
 packer init macos
 ```
@@ -66,7 +66,7 @@ packer build -parallel-builds=1 \
   macos
 ```
 
-### Pre-release VM creation
+### Pre-release macOS versions
 
 ```bash
 packer build -var -parallel-builds=1 version=27-0 macos
